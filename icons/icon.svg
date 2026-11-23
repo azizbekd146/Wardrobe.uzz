@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#efece6"/>
+<path d="M110 400V170q0-30 30-30h250" fill="none" stroke="#fbfaf6" stroke-width="14" stroke-linecap="round"/><path d="M402 140v260M90 400h330" stroke="#fbfaf6" stroke-width="14" stroke-linecap="round"/>
+<path d="M150 170l40 20 40-20v120h-80z" fill="#f2ead8"/><path d="M240 175l40 18 40-18v135h-80z" fill="#9fb7cf"/><path d="M330 175l32 14 32-14v110h-64z" fill="#8a9677"/>
+<ellipse cx="400" cy="120" rx="70" ry="26" fill="#c9a96b"/><path d="M360 118q40-60 80 0z" fill="#d6b97c"/><rect x="360" y="106" width="80" height="10" fill="#2f2c29"/></svg>

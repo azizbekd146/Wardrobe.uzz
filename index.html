@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wardrobe - Virtual Store</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wardrobe">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./css/styles.css">
+</head><body>
+<header>
+  <button id="menuToggle" type="button" aria-label="Menyuni ochish" aria-expanded="false" aria-controls="dMenu">
+    <span></span><span></span><span></span>
+  </button>
+  <h1>Wardrobe</h1><p data-i18n="storeSubtitle">VIRTUAL STORE</p>
+  <div id="language">
+    <button id="langToggle" type="button" aria-expanded="false" aria-haspopup="true">UZB</button>
+    <div id="langMenu" hidden><button type="button" data-lang="en">ENG</button></div>
+  </div>
+</header>
+<main id="shelves"></main>
+
+<div id="dock">
+  <div class="actions">
+    <button id="bUp" class="a light" data-i18n="upload">+ Upload item</button>
+    <button id="bAi" class="a blue" data-i18n="aiMatch">AI match</button>
+  </div>
+  <small data-i18n="syncHint">Tap the status badge to link your devices with a sync code.</small>
+</div>
+
+<dialog id="dMenu" class="menu-drawer" aria-labelledby="menuTitle">
+  <div class="menu-head">
+    <h2 id="menuTitle" data-i18n="menuTitle">Menyu</h2>
+    <button id="menuClose" class="menu-close" type="button" aria-label="Menyuni yopish">×</button>
+  </div>
+  <nav class="menu-categories" aria-label="Kiyim kategoriyalari">
+    <button type="button" data-menu-filter="all" data-i18n="all">Barchasi</button>
+    <button type="button" data-menu-filter="tops" data-i18n="tops">Ko‘ylaklar</button>
+    <button type="button" data-menu-filter="outerwear" data-i18n="outerwear">Ustki kiyim</button>
+    <button type="button" data-menu-filter="trousers" data-i18n="trousers">Shimlar</button>
+    <button type="button" data-menu-filter="shoes" data-i18n="shoes">Oyoq kiyimlar</button>
+    <button type="button" data-menu-filter="caps" data-i18n="caps">Bosh kiyimlar</button>
+    <button type="button" data-menu-filter="bags" data-i18n="bags">Sumkalar</button>
+  </nav>
+  <button id="historyOpen" class="menu-history" type="button" data-i18n="outfitHistory">Obrazlar tarixi</button>
+  <button type="button" class="menu-history" data-menu-filter="favorites" data-i18n="favorites">♥ Sevimlilar</button>
+  <div class="menu-actions">
+    <button id="settingsOpen" type="button" data-i18n="menuSettings">⚙️ Sozlamalar</button>
+    <button id="badge" class="badge off" type="button">Oflayn</button>
+  </div>
+</dialog>
+
+<dialog id="dHistory" class="history-dialog" aria-labelledby="historyTitle">
+  <div class="menu-head">
+    <h2 id="historyTitle" data-i18n="outfitHistory">Obrazlar tarixi</h2>
+    <button id="historyClose" class="menu-close" type="button" aria-label="Tarixni yopish">×</button>
+  </div>
+  <div id="historyOut"></div>
+</dialog>
+
+<dialog id="dSettings" class="settings-dialog" aria-labelledby="settingsTitle">
+  <div class="menu-head">
+    <h2 id="settingsTitle" data-i18n="settingsTitle">Sozlamalar</h2>
+    <button id="settingsClose" class="menu-close" type="button" aria-label="Sozlamalarni yopish">×</button>
+  </div>
+  <h3 class="theme-title" data-i18n="themeTitle">Mavzu</h3>
+  <div id="themeOptions" class="theme-options" role="group" aria-label="Theme">
+    <button id="themeLight" type="button" data-theme-choice="light" data-i18n="lightMode" aria-pressed="true">Light</button>
+    <button id="themeDark" type="button" data-theme-choice="dark" data-i18n="darkMode" aria-pressed="false">Dark</button>
+  </div>
+</dialog>
+
+<dialog id="dUp"><form method="dialog" id="fUp">
+  <h2 id="upT">Upload item</h2>
+  <img id="prev" alt="" hidden>
+  <div class="row">
+    <label class="btn">📷 <span data-i18n="takePhoto">Take photo</span><input id="cam" type="file" accept="image/*" capture="environment" hidden></label>
+    <label class="btn">🖼 <span data-i18n="chooseFile">Choose file</span><input id="file" type="file" accept="image/*" hidden></label>
+  </div>
+  <select id="cat"></select>
+  <input id="name" placeholder="Kiyim nomi" data-i18n-placeholder="itemName" hidden>
+  <div class="row"><button type="button" class="btn" id="upX" data-i18n="cancel">Cancel</button><button class="btn dark" data-i18n="save">Save</button></div>
+</form></dialog>
+
+<dialog id="dView"><img id="vImg" alt=""><div id="vInfo"></div>
+  <div class="row"><button class="btn" id="vEdit" data-i18n="edit">Edit</button><button class="btn danger" id="vDel" data-i18n="delete">Delete</button><button class="btn dark" id="vX" data-i18n="close">Close</button></div>
+</dialog>
+
+<dialog id="dAi"><h2 data-i18n="aiMatch">AI match</h2><div id="aiOut"></div>
+  <div class="row"><button class="btn" id="aiAgain" data-i18n="shuffle">Shuffle</button><button class="btn dark" id="aiX" data-i18n="close">Close</button></div>
+</dialog>
+
+<dialog id="dSync"><form method="dialog"><h2 data-i18n="syncTitle">Sync</h2>
+  <p data-i18n="syncDescription">Use the same sync code on all your devices. Keep it private.</p>
+  <input id="code" placeholder="Sync code" data-i18n-placeholder="syncCode">
+  <div class="row"><button type="button" class="btn" id="gen" data-i18n="generate">Generate</button><button class="btn dark" id="codeOk" data-i18n="save">Save</button></div>
+</form></dialog>
+<div id="toast"></div>
+<script type="module" src="./js/app.js"></script>
+</body></html>
