@@ -22,6 +22,7 @@ const TEXT={
     saveFailed:'Saqlab bo‘lmadi: ',deleteFailed:'O‘chirib bo‘lmadi',imageRead:'Rasmni o‘qib bo‘lmadi',photoRequired:'Avval rasm tanlang',
     confirmDelete:'“{name}” kiyimini o‘chirmoqchimisiz?',
     styling:'Gemini obraz tuzmoqda…',bestLook:'Eng mos obraz',
+    fallbackUsed:'Gemini vaqtincha band. Kiyimlaringiz asosidagi zaxira tavsiya:',
     aiNotConfigured:'Gemini API kaliti serverda sozlanmagan.',aiFailed:'AI obraz tuza olmadi. Keyinroq qayta urinib ko‘ring.',
     needCategories:'Obraz tavsiyasini olish uchun kamida bitta ustki kiyim, shim va oyoq kiyim qo‘shing.',
     syncCodeLength:'Kamida 8 ta belgidan foydalaning',
@@ -47,6 +48,7 @@ const TEXT={
     saveFailed:'Save failed: ',deleteFailed:'Delete failed',imageRead:'Could not read that image',photoRequired:'Please add a photo first',
     confirmDelete:'Delete “{name}”?',
     styling:'Gemini is styling…',bestLook:'Best outfit',
+    fallbackUsed:'Gemini is temporarily busy. Here is a backup based on your wardrobe:',
     aiNotConfigured:'The Gemini API key is not configured on the server.',aiFailed:'AI could not create an outfit. Please try again later.',
     needCategories:'Add at least one top, one pair of trousers and one pair of shoes to get outfit ideas.',
     syncCodeLength:'Use at least 8 characters',
@@ -239,7 +241,8 @@ async function runAi(){
     if(selected.length<3||selected.some(item=>!item))throw new Error(t('aiFailed'));
     const outfit={title:t('bestLook'),ids:selected.map(item=>item.id),why:result.stylistNote.trim()};
     currentOutfits=[outfit];
-    box.innerHTML=`<div class="outfit"><b>${esc(outfit.title)}</b><div class="th">${
+    const fallbackNote=result.fallback?`<p class="ai-fallback">${t('fallbackUsed')}</p>`:'';
+    box.innerHTML=`${fallbackNote}<div class="outfit"><b>${esc(outfit.title)}</b><div class="th">${
       selected.map(item=>`<img src="${esc(item.img)}" alt="${esc(item.name)}">`).join('')}</div><small>${esc(outfit.why)}</small><button type="button" class="btn save-look" data-save-outfit="0">${t('saveOutfit')}</button></div>`;
   }catch(error){
     console.error('AI outfit generation failed:',error);

@@ -34,6 +34,7 @@ header p{font-size:.62rem;letter-spacing:.35em;color:var(--mute);margin-top:2px}
 .history-dialog{max-height:82vh;max-height:82dvh}
 .history-dialog .menu-head{position:sticky;top:-18px;padding:8px 0;background:var(--page);z-index:1}
 .history-empty{margin-top:16px}
+.ai-fallback{padding:10px 12px;border-radius:12px;background:var(--soft)}
 .history-entry{margin:12px 0;padding:12px;border-radius:14px;background:var(--soft)}
 .history-meta{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .history-meta small,.history-entry>small{color:var(--mute)}

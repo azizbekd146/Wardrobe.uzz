@@ -44,4 +44,4 @@ Tap the status badge (Synced / Syncing... / Offline) on your computer -> Generat
 2. In Vercel, open **Project Settings -> Environment Variables** and add `GEMINI_API_KEY` for the environments you use.
 3. Redeploy the project. The key stays on the server; never add it to `js/app.js` or other browser code.
 
-The `api/match.js` function sends item names, categories, and colors to Gemini, not photos. It returns one outfit with a stylist note. The `/api/match` endpoint is available on Vercel; static hosting and a basic local HTTP server do not run this function.
+The `api/match.js` function sends item names, categories, and colors to Gemini, not photos. It returns one outfit with a stylist note. If all Gemini attempts return `503`, it selects a compatible outfit from the wardrobe and labels it as a backup recommendation. The `/api/match` endpoint is available on Vercel; static hosting and a basic local HTTP server do not run this function.

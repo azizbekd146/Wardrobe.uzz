@@ -3,6 +3,66 @@ const MODEL_URL='https://generativelanguage.googleapis.com/v1beta/models/';
 const RETRY_DELAYS=[600,1200];
 const CATEGORIES=new Set(['tops','outerwear','trousers','shoes','caps','bags']);
 const REQUIRED_CATEGORIES=['tops','trousers','shoes'];
+const NEUTRAL_COLORS=['black','white','gray','grey','beige','cream','ivory','navy','denim','brown','tan','khaki','olive','charcoal','sand','stone','qora','oq','kulrang','bej','jigarrang','zaytun'];
+const COLOR_GROUPS={
+  red:['red','qizil','burgundy','maroon'],
+  blue:['blue','ko‘k',"ko'k",'kok'],
+  green:['green','yashil'],
+  yellow:['yellow','sariq','mustard'],
+  orange:['orange','to‘q sariq',"to'q sariq"],
+  purple:['purple','violet','lilac','binafsha'],
+  pink:['pink','pushti','rose'],
+};
+const COMPLEMENTARY_COLORS={red:'green',green:'red',blue:'orange',orange:'blue',yellow:'purple',purple:'yellow'};
+
+function colorProfile(item){
+  const classify=value=>{
+    const text=value.toLowerCase();
+    if(NEUTRAL_COLORS.some(color=>text.includes(color)))return 'neutral';
+    return Object.entries(COLOR_GROUPS).find(([,terms])=>terms.some(color=>text.includes(color)))?.[0]||null;
+  };
+  return classify(item.color)||classify(item.name);
+}
+function colorFit(first,second){
+  if(!first||!second)return 0;
+  if(first==='neutral'||second==='neutral')return 2;
+  if(first===second||COMPLEMENTARY_COLORS[first]===second)return 1;
+  return -2;
+}
+function createFallback(items,language){
+  const byCategory=category=>items.filter(item=>item.category===category);
+  const profiles=new Map(items.map(item=>[item.id,colorProfile(item)]));
+  let bestOutfit,bestScore=-Infinity;
+  for(const top of byCategory('tops')){
+    for(const trousers of byCategory('trousers')){
+      for(const shoes of byCategory('shoes')){
+        const outfit=[top,trousers,shoes];
+        const score=colorFit(profiles.get(top.id),profiles.get(trousers.id))+
+          colorFit(profiles.get(top.id),profiles.get(shoes.id))+
+          colorFit(profiles.get(trousers.id),profiles.get(shoes.id));
+        if(score>bestScore){bestScore=score;bestOutfit=outfit}
+      }
+    }
+  }
+  for(const category of ['outerwear','caps','bags']){
+    let bestItem,bestFit=-Infinity;
+    for(const item of byCategory(category)){
+      const fit=bestOutfit.reduce((total,selected)=>total+colorFit(profiles.get(item.id),profiles.get(selected.id)),0);
+      if(fit>bestFit){bestFit=fit;bestItem=item}
+    }
+    if(bestItem&&bestFit>=0){bestOutfit.push(bestItem)}
+  }
+
+  const colors=[...new Set(bestOutfit.map(item=>item.color).filter(Boolean))].slice(0,4).join(', ').slice(0,120);
+  const knownColorCount=bestOutfit.slice(0,3).filter(item=>profiles.get(item.id)).length;
+  const reason=language==='en'
+    ?knownColorCount<2?'The top, trousers, and shoes make a complete base outfit.':bestScore>=5?'Neutral shades keep the outfit balanced.':bestScore>=0?'The colors complement each other without too much contrast.':'The category combination makes a complete base; simple accessories keep it balanced.'
+    :knownColorCount<2?'Ustki kiyim, shim va oyoq kiyim to‘liq asosiy obrazni yaratadi.':bestScore>=5?'Neytral ranglar obrazni muvozanatda saqlaydi.':bestScore>=0?'Ranglar bir-birini to‘ldiradi va kontrastni me’yorida saqlaydi.':'Kategoriyalar obrazni to‘ldiradi; sodda aksessuarlar muvozanatni saqlaydi.';
+  const stylistNote=language==='en'
+    ?`Why it works: ${reason}${colors?` Selected colors: ${colors}.`:''} Style tip: keep accessories simple and let one detail stand out.`
+    :`Moslashtirish sababi: ${reason}${colors?` Tanlangan ranglar: ${colors}.`:''} Stil maslahati: aksessuarlarni sodda tutib, bitta detalni ajratib ko‘rsating.`;
+  return {outfit:bestOutfit.map(item=>item.id),stylistNote,fallback:true};
+}
 
 module.exports=async function handler(req,res){
   if(req.method!=='POST'){
@@ -68,6 +128,7 @@ module.exports=async function handler(req,res){
   });
 
   let responseBody;
+  let everyAttemptWas503=true;
   for(let attempt=0;attempt<=RETRY_DELAYS.length;attempt++){
     let upstream;
     try{
@@ -92,9 +153,14 @@ module.exports=async function handler(req,res){
     if(!upstream.ok){
       const details=parsedResponse?.error?.message||responseText.slice(0,1000)||'No error details returned.';
       console.error(`Gemini model ${MODEL_NAME} returned status ${upstream.status} on attempt ${attempt+1}:`,details);
+      if(upstream.status!==503)everyAttemptWas503=false;
       if((upstream.status===429||upstream.status===503)&&attempt<RETRY_DELAYS.length){
         await new Promise(resolve=>setTimeout(resolve,RETRY_DELAYS[attempt]));
         continue;
+      }
+      if(upstream.status===503&&everyAttemptWas503){
+        console.warn('Gemini returned 503 on every attempt; using a wardrobe-based fallback.');
+        return res.status(200).json(createFallback(items,language));
       }
       return res.status(502).json({error:'Gemini could not create an outfit.'});
     }
