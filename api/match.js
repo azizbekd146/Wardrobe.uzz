@@ -1,5 +1,6 @@
 const MODEL_NAME='gemini-3.8-flash';
 const MODEL_URL='https://generativelanguage.googleapis.com/v1beta/models/';
+const RETRY_DELAYS=[600,1200];
 const CATEGORIES=new Set(['tops','outerwear','trousers','shoes','caps','bags']);
 const REQUIRED_CATEGORIES=['tops','trousers','shoes'];
 
@@ -66,35 +67,45 @@ module.exports=async function handler(req,res){
     },
   });
 
-  let upstream;
-  try{
-    upstream=await fetch(`${MODEL_URL}${MODEL_NAME}:generateContent`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},
-      signal:AbortSignal.timeout(30000),
-      body:requestBody,
-    });
-  }catch(error){
-    console.error(`Gemini request for ${MODEL_NAME} failed:`,error.message);
-    return res.status(502).json({error:'Gemini is temporarily unavailable.'});
-  }
-
-  let responseText;
-  try{responseText=await upstream.text()}catch(error){
-    console.error(`Could not read Gemini response for ${MODEL_NAME}:`,error.message);
-    return res.status(502).json({error:'Gemini returned an invalid response.'});
-  }
   let responseBody;
-  try{responseBody=JSON.parse(responseText)}catch{}
-  if(!upstream.ok){
-    const details=responseBody?.error?.message||responseText.slice(0,1000)||'No error details returned.';
-    console.error(`Gemini model ${MODEL_NAME} returned status ${upstream.status}:`,details);
-    return res.status(502).json({error:'Gemini could not create an outfit.'});
+  for(let attempt=0;attempt<=RETRY_DELAYS.length;attempt++){
+    let upstream;
+    try{
+      upstream=await fetch(`${MODEL_URL}${MODEL_NAME}:generateContent`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},
+        signal:AbortSignal.timeout(30000),
+        body:requestBody,
+      });
+    }catch(error){
+      console.error(`Gemini request for ${MODEL_NAME} failed:`,error.message);
+      return res.status(502).json({error:'Gemini is temporarily unavailable.'});
+    }
+
+    let responseText;
+    try{responseText=await upstream.text()}catch(error){
+      console.error(`Could not read Gemini response for ${MODEL_NAME}:`,error.message);
+      return res.status(502).json({error:'Gemini returned an invalid response.'});
+    }
+    let parsedResponse;
+    try{parsedResponse=JSON.parse(responseText)}catch{}
+    if(!upstream.ok){
+      const details=parsedResponse?.error?.message||responseText.slice(0,1000)||'No error details returned.';
+      console.error(`Gemini model ${MODEL_NAME} returned status ${upstream.status} on attempt ${attempt+1}:`,details);
+      if((upstream.status===429||upstream.status===503)&&attempt<RETRY_DELAYS.length){
+        await new Promise(resolve=>setTimeout(resolve,RETRY_DELAYS[attempt]));
+        continue;
+      }
+      return res.status(502).json({error:'Gemini could not create an outfit.'});
+    }
+    if(!parsedResponse||typeof parsedResponse!=='object'){
+      console.error(`Gemini model ${MODEL_NAME} returned invalid JSON:`,responseText.slice(0,1000));
+      return res.status(502).json({error:'Gemini returned an invalid response.'});
+    }
+    responseBody=parsedResponse;
+    break;
   }
-  if(!responseBody||typeof responseBody!=='object'){
-    console.error(`Gemini model ${MODEL_NAME} returned invalid JSON:`,responseText.slice(0,1000));
-    return res.status(502).json({error:'Gemini returned an invalid response.'});
-  }
+  if(!responseBody)return res.status(502).json({error:'Gemini could not create an outfit.'});
 
   const text=responseBody?.candidates?.[0]?.content?.parts?.map(part=>part?.text||'').join('').trim();
   if(!text)return res.status(502).json({error:'Gemini did not return an outfit.'});
