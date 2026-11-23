@@ -6,6 +6,7 @@ wardrobe-virtual-store/
 ├── css/styles.css
 ├── js/firebase-config.js   <- paste your Firebase keys here
 ├── js/app.js
+├── api/match.js            <- Gemini AI outfit function (Vercel)
 ├── icons/ (icon.svg, icon-192.png, icon-512.png)
 ├── manifest.json
 ├── service-worker.js
@@ -39,5 +40,8 @@ Tap the status badge (Synced / Syncing... / Offline) on your computer -> Generat
 - **Android (Chrome/Edge):** menu -> Install app / Add to Home screen.
 
 ## AI match
-- Works with no setup: smart local matching picks a top, trousers and shoes (plus optional outerwear, cap, bag) using the colors you typed in, favouring neutrals with at most one accent.
-- Optional: tap "AI key" and save an Anthropic API key (sk-ant-…). Only item names, categories and colors are sent to Anthropic, never photos. The key is stored only in that device's browser.
+1. Deploy the project to Vercel.
+2. In Vercel, open **Project Settings -> Environment Variables** and add `GEMINI_API_KEY` for the environments you use.
+3. Redeploy the project. The key stays on the server; never add it to `js/app.js` or other browser code.
+
+The `api/match.js` function sends item names, categories, and colors to Gemini, not photos. It returns one outfit with a stylist note. The `/api/match` endpoint is available on Vercel; static hosting and a basic local HTTP server do not run this function.

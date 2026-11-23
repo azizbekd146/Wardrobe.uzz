@@ -15,14 +15,14 @@ const TEXT={
     outfitHistory:'Obrazlar tarixi',historyClose:'Tarixni yopish',historyEmpty:'Saqlangan obrazlar hozircha yo‘q.',
     saveOutfit:'Obrazni saqlash',outfitSaved:'Saqlandi',itemName:'Kiyim nomi',historyLoadFailed:'Obrazlar tarixini o‘qib bo‘lmadi',
     syncHint:'Qurilmalarni sinxronlash kodi orqali ulang.',uploadTitle:'Kiyim qo‘shish',editItem:'Kiyimni tahrirlash',takePhoto:'Rasmga olish',chooseFile:'Fayl tanlash',
-    cancel:'Bekor qilish',save:'Saqlash',edit:'Tahrirlash',delete:'O‘chirish',close:'Yopish',shuffle:'Aralashtirish',
+    cancel:'Bekor qilish',save:'Saqlash',edit:'Tahrirlash',delete:'O‘chirish',close:'Yopish',shuffle:'Yana taklif',
     syncTitle:'Sinxronlash',syncDescription:'Barcha qurilmalaringizda bir xil sinxronlash kodidan foydalaning. Uni maxfiy saqlang.',
     syncCode:'Sinxronlash kodi',generate:'Yaratish',
     storageFull:'Mahalliy xotira to‘ldi',syncError:'Sinxronlashda xatolik: ',loadFirebase:'Firebase yuklanmadi',
     saveFailed:'Saqlab bo‘lmadi: ',deleteFailed:'O‘chirib bo‘lmadi',imageRead:'Rasmni o‘qib bo‘lmadi',photoRequired:'Avval rasm tanlang',
-    confirmDelete:'“{name}” kiyimini o‘chirmoqchimisiz?',look:'Obraz',balanced:'Neytral ranglar uyg‘unligi',accent:', bitta yorqin rang bilan.',
-    needItems:'Avval bir nechta kiyim qo‘shing (kamida ko‘ylak, shim va oyoq kiyim).',styling:'Obraz tuzilmoqda…',
-    localMatching:'Aqlli mahalliy moslash',
+    confirmDelete:'“{name}” kiyimini o‘chirmoqchimisiz?',
+    styling:'Gemini obraz tuzmoqda…',bestLook:'Eng mos obraz',
+    aiNotConfigured:'Gemini API kaliti serverda sozlanmagan.',aiFailed:'AI obraz tuza olmadi. Keyinroq qayta urinib ko‘ring.',
     needCategories:'Obraz tavsiyasini olish uchun kamida bitta ustki kiyim, shim va oyoq kiyim qo‘shing.',
     syncCodeLength:'Kamida 8 ta belgidan foydalaning',
     localMode:'Mahalliy rejim: sinxronlash uchun js/firebase-config.js fayliga Firebase kalitlarini kiriting.',
@@ -40,14 +40,14 @@ const TEXT={
     outfitHistory:'Outfit history',historyClose:'Close history',historyEmpty:'No saved outfits yet.',
     saveOutfit:'Save outfit',outfitSaved:'Saved',itemName:'Item name',historyLoadFailed:'Could not load outfit history',
     syncHint:'Tap the status badge to link your devices with a sync code.',uploadTitle:'Upload item',editItem:'Edit item',takePhoto:'Take photo',chooseFile:'Choose file',
-    cancel:'Cancel',save:'Save',edit:'Edit',delete:'Delete',close:'Close',shuffle:'Shuffle',
+    cancel:'Cancel',save:'Save',edit:'Edit',delete:'Delete',close:'Close',shuffle:'Try another',
     syncTitle:'Sync',syncDescription:'Use the same sync code on all your devices. Keep it private.',
     syncCode:'Sync code',generate:'Generate',
     storageFull:'Local storage is full',syncError:'Sync error: ',loadFirebase:'Could not load Firebase',
     saveFailed:'Save failed: ',deleteFailed:'Delete failed',imageRead:'Could not read that image',photoRequired:'Please add a photo first',
-    confirmDelete:'Delete “{name}”?',look:'Look',balanced:'Balanced neutrals',accent:' with one accent color.',
-    needItems:'Upload a few items first (at least a top, trousers and shoes).',styling:'Styling…',
-    localMatching:'Smart local matching',
+    confirmDelete:'Delete “{name}”?',
+    styling:'Gemini is styling…',bestLook:'Best outfit',
+    aiNotConfigured:'The Gemini API key is not configured on the server.',aiFailed:'AI could not create an outfit. Please try again later.',
     needCategories:'Add at least one top, one pair of trousers and one pair of shoes to get outfit ideas.',
     syncCodeLength:'Use at least 8 characters',
     localMode:'Local mode: add Firebase keys in js/firebase-config.js to sync.',
@@ -134,6 +134,7 @@ function applyLanguage(){
   $('menuClose').setAttribute('aria-label',t('menuClose'));
   $('settingsClose').setAttribute('aria-label',t('closeSettings'));
   $('historyClose').setAttribute('aria-label',t('historyClose'));
+  $('aiX').setAttribute('aria-label',t('close'));
   $('langMenu').querySelector('button').textContent=lang==='uz'?'ENG':'UZB';
   $('langMenu').querySelector('button').dataset.lang=lang==='uz'?'en':'uz';
   $('cat').innerHTML=CATS.map(id=>`<option value="${id}">${label(id)}</option>`).join('');
@@ -220,35 +221,31 @@ $('vDel').onclick=()=>{if(confirm(t('confirmDelete').replace('{name}',viewing.na
 $('cat').innerHTML=CATS.map(id=>`<option value="${id}">${label(id)}</option>`).join('');
 
 // ---------- AI match ----------
-const NEUTRAL=['black','white','grey','gray','beige','cream','ivory','navy','denim','brown','tan','khaki','olive','charcoal','sand','stone'];
-const isN=c=>NEUTRAL.some(n=>(c||'').toLowerCase().includes(n));
-const col=i=>(i.color||'').toLowerCase().trim();
-function score(set){let s=0;const cs=set.map(col).filter(Boolean);
-  s+=cs.filter(isN).length*2;
-  const loud=cs.filter(c=>!isN(c));s-=Math.max(0,loud.length-1)*4;           // at most one bold color
-  if(new Set(cs).size===cs.length)s+=2;else s-=2;                              // avoid identical colors
-  return s+Math.random()}
-function localOutfits(){
-  const by=id=>items.filter(i=>i.cat===id),out=[],seen=new Set();
-  const core=['tops','trousers','shoes'];
-  if(core.some(c=>!by(c).length))return null;
-  for(let n=0;n<60;n++){
-    const set=core.map(c=>by(c)[Math.floor(Math.random()*by(c).length)]);
-    ['outerwear','caps','bags'].forEach(c=>{if(by(c).length&&Math.random()<.6)set.push(by(c)[Math.floor(Math.random()*by(c).length)])});
-    const key=set.map(i=>i.id).sort().join();if(seen.has(key))continue;seen.add(key);
-    out.push({set,s:score(set)})}
-  return out.sort((a,b)=>b.s-a.s).slice(0,4).map((o,i)=>({title:t('look')+' '+(i+1),ids:o.set.map(x=>x.id),
-    why:t('balanced')+(o.set.some(x=>!isN(col(x)))?t('accent'):'.')}))}
 async function runAi(){
   const box=$('aiOut');
   currentOutfits=[];
-  if(items.length<3){box.innerHTML=`<p>${t('needItems')}</p>`;return}
+  const required=['tops','trousers','shoes'];
+  if(required.some(category=>!items.some(item=>item.cat===category))){box.innerHTML=`<p>${t('needCategories')}</p>`;return}
   box.innerHTML=`<p>${t('styling')}</p>`;
-  const res=localOutfits(),note=t('localMatching');
-  if(!res){box.innerHTML=`<p>${t('needCategories')}</p>`;return}
-  currentOutfits=res;
-  box.innerHTML=`<p>${note}</p>`+res.map((o,index)=>`<div class="outfit"><b>${esc(o.title)}</b><div class="th">${
-    o.ids.map(id=>{const i=items.find(x=>x.id===id);return `<img src="${esc(i.img)}" alt="${esc(i.name)}">`}).join('')}</div><small>${esc(o.why)}</small><button type="button" class="btn save-look" data-save-outfit="${index}">${t('saveOutfit')}</button></div>`).join('')}
+  $('aiAgain').disabled=true;
+  try{
+    const response=await fetch('/api/match',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({language:lang,items:items.map(({id,name,cat,color})=>({id,name,category:cat,color}))})});
+    const result=await response.json().catch(()=>null);
+    if(response.status===503)throw new Error(t('aiNotConfigured'));
+    if(!response.ok)throw new Error(response.status>=500?t('aiFailed'):result?.error||t('aiFailed'));
+    if(!Array.isArray(result?.outfit)||typeof result.stylistNote!=='string'||!result.stylistNote.trim())throw new Error(t('aiFailed'));
+    const selected=result.outfit.map(id=>items.find(item=>item.id===id));
+    if(selected.length<3||selected.some(item=>!item))throw new Error(t('aiFailed'));
+    const outfit={title:t('bestLook'),ids:selected.map(item=>item.id),why:result.stylistNote.trim()};
+    currentOutfits=[outfit];
+    box.innerHTML=`<div class="outfit"><b>${esc(outfit.title)}</b><div class="th">${
+      selected.map(item=>`<img src="${esc(item.img)}" alt="${esc(item.name)}">`).join('')}</div><small>${esc(outfit.why)}</small><button type="button" class="btn save-look" data-save-outfit="0">${t('saveOutfit')}</button></div>`;
+  }catch(error){
+    console.error('AI outfit generation failed:',error);
+    box.innerHTML=`<p>${esc(error instanceof Error?error.message:t('aiFailed'))}</p>`;
+  }finally{$('aiAgain').disabled=false}
+}
 $('aiOut').onclick=e=>{
   const button=e.target.closest('button[data-save-outfit]');if(!button)return;
   const outfit=currentOutfits[Number(button.dataset.saveOutfit)];if(!outfit)return;

@@ -91,8 +91,13 @@
   <div class="row"><button class="btn" id="vEdit" data-i18n="edit">Edit</button><button class="btn danger" id="vDel" data-i18n="delete">Delete</button><button class="btn dark" id="vX" data-i18n="close">Close</button></div>
 </dialog>
 
-<dialog id="dAi"><h2 data-i18n="aiMatch">AI match</h2><div id="aiOut"></div>
-  <div class="row"><button class="btn" id="aiAgain" data-i18n="shuffle">Shuffle</button><button class="btn dark" id="aiX" data-i18n="close">Close</button></div>
+<dialog id="dAi">
+  <div class="menu-head">
+    <h2 data-i18n="aiMatch">AI match</h2>
+    <button class="menu-close" id="aiX" type="button" aria-label="Yopish">×</button>
+  </div>
+  <div id="aiOut"></div>
+  <div class="row"><button class="btn" id="aiAgain" data-i18n="shuffle">Try another</button></div>
 </dialog>
 
 <dialog id="dSync"><form method="dialog"><h2 data-i18n="syncTitle">Sync</h2>
